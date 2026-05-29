@@ -80,6 +80,22 @@
   .gtiles{display:inline-flex;gap:2px;vertical-align:middle}
   .gtiles i{width:13px;height:13px;border-radius:2px;display:inline-block}
   .gt-c{background:var(--correct)}.gt-p{background:var(--present)}.gt-a{background:var(--absent)}
+  .cal-week{margin-bottom:18px}
+  .cal-weeklabel{font-weight:700;font-size:13px;color:#3a4a3e;margin-bottom:6px}
+  .cal-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .cal-cell{border:1px solid var(--line);border-radius:10px;padding:6px 7px;min-height:66px;background:#fff}
+  .cal-cell.today{border-color:var(--gold);box-shadow:0 0 0 2px rgba(244,196,48,.3)}
+  .cal-cell.future{background:#f4f6f3}
+  .cal-dayhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+  .cal-dn{font-size:10px;font-weight:700;text-transform:uppercase;color:#7a8a7e;letter-spacing:.4px}
+  .cal-dd{font-size:13px;font-weight:700;color:#3a4a3e}
+  .cal-play{display:flex;flex-direction:column;padding:3px 0;border-top:1px dashed var(--line);font-size:11px;line-height:1.25}
+  .cal-play:first-of-type{border-top:none}
+  .cal-play.win .cal-name{color:#9a7a00;font-weight:700}
+  .cal-name{font-weight:600;word-break:break-word}
+  .cal-score{color:#5c6b61}
+  .cal-empty{color:#c2ccc4;font-size:14px;text-align:center;padding-top:8px}
+  @media(max-width:560px){.cal-grid{grid-template-columns:1fr;gap:4px}.cal-cell{min-height:auto;display:flex;flex-direction:column}.cal-dayhead{margin-bottom:2px}}
   footer.note{max-width:760px;margin:0 auto;padding:0 14px 40px;color:#6b7a70;font-size:12px;line-height:1.5}
   #loading{position:fixed;inset:0;background:var(--paper);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:100}
   #loading .trophy{font-size:46px}
@@ -127,10 +143,10 @@
   <section id="tab-standings" class="hidden">
     <div class="card">
       <h2>League Table</h2>
-      <div class="muted" style="margin-bottom:8px">Ranked by <strong>average guesses</strong> (lower is better). Ties broken by <strong>average solve time</strong>. Updates live as teammates play.</div>
+      <div class="muted" style="margin-bottom:8px">Ranked by <strong>Score</strong> = average guesses + a small penalty for missed weekdays (<strong>+0.25 per missed day</strong> once you've started). Lower is better; ties broken by <strong>average solve time</strong>. Updates live.</div>
       <div style="overflow-x:auto">
         <table id="standingsTable">
-          <thead><tr><th>#</th><th style="text-align:left">Player</th><th>P</th><th>Solved</th><th>Avg Guess</th><th>Best</th><th>Avg Time</th><th>🏅</th></tr></thead>
+          <thead><tr><th>#</th><th style="text-align:left">Player</th><th title="Games played">P</th><th>Solved</th><th title="Average guesses (X = 7)">Avg Guess</th><th title="Missed weekdays (penalty)">Missed</th><th title="Avg guesses + miss penalty">Score</th><th>Avg Time</th><th title="Daily wins">🏅</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -141,8 +157,7 @@
   <section id="tab-daily" class="hidden">
     <div class="card">
       <h2>Daily Results</h2>
-      <div class="muted">Each day's winner solved it in the fewest guesses, fastest time breaking ties.</div>
-      <div id="dailyList" style="margin-top:12px"></div>
+      <div id="dailyList" style="margin-top:4px"></div>
     </div>
   </section>
 
@@ -171,12 +186,16 @@
         <button class="btn ghost" id="copyLink">Copy link</button>
       </div>
     </div>
+    <div class="card" style="border-color:#f0c9c9">
+      <h2>Testing tools</h2>
+      <div class="muted">Use this while trialling the Cup. <strong>Reset</strong> wipes every score and the daily history for the whole team (the roster stays), so everyone can replay. Clear it once before going live for real.</div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="resetBtn" style="background:#b3261e">Reset leaderboard (clear all scores)</button>
+      </div>
+    </div>
   </section>
 </main>
 
-<footer class="note">
-  <p>Live shared leaderboard powered by your team's database. Everyone plays the same daily word; results sync to all devices automatically. No installs, no manual tracking.</p>
-</footer>
 
 <div class="toast" id="toast"></div>
 
@@ -191,44 +210,59 @@
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   /* ===== Daily answer list (same word for everyone each date) ===== */
-  var ANSWERS = ("about above abuse actor acute admit adopt adult after again agent agree ahead alarm album "+
-  "alert alike alive allow alone along alter among anger angle angry apart apple apply arena argue arise "+
-  "armor array aside asset audio audit avoid award aware badly baker bases basic beach began begin begun "+
-  "being below bench bible birth black blame blank blast blind block blood board boost booth bound brain "+
-  "brand brave bread break breed brick brief bring broad broke brown build built buyer cable cache cargo "+
-  "carry catch cause chain chair chaos charm chart chase cheap check chest chief child chill china chose "+
-  "civic civil claim class clean clear click cliff climb clock close cloud coach coast could count court "+
-  "cover craft crash crazy cream crime cross crowd crown crude curve cycle daily dance dated dealt death "+
-  "debut delay depth doing doubt dozen draft drama drank drawn dream dress drill drink drive drove dying "+
-  "eager early earth eight elite empty enemy enjoy enter entry equal error event every exact exist extra "+
-  "faith false fault fiber field fifth fifty fight final first fixed flame flash fleet floor fluid focus "+
-  "force forth forty forum found frame frank fraud fresh front frost fruit fully funny ghost giant given "+
-  "glass globe going grace grade grain grand grant grass grave great green greet gross group grown guard "+
-  "guess guest guide happy harsh heart heavy hence horse hotel house human ideal image index inner input "+
-  "issue japan joint judge known label large laser later laugh layer learn lease least leave legal lemon "+
-  "level light limit links lives local logic loose lower lucky lunch lying magic major maker march match "+
-  "maybe mayor meant medal media metal meter might minor minus mixed model money month moral motor mount "+
-  "mouse mouth movie music needs nerve never newly night noise north noted novel nurse occur ocean offer "+
-  "often order other ought paint panel paper party peace phase phone photo piano piece pilot pitch place "+
-  "plain plane plant plate point pound power press price pride prime print prior prize proof proud prove "+
-  "queen quick quiet quite radio raise range rapid ratio reach ready realm rebel refer relax reply right "+
-  "rival river robin roman rough round route royal rural scale scene scope score sense serve setup seven "+
-  "shall shape share sharp sheep sheet shelf shell shift shine shirt shock shoot short shown sight silly "+
-  "since sixth sixty sized skill sleep slide small smart smile smoke solid solve sorry sound south space "+
-  "spare speak speed spend spent split spoke sport staff stage stake stand start state steam steel steep "+
-  "steer stick still stock stone stood store storm story strip stuck study stuff style sugar suite super "+
-  "sweet table taken taste taxes teach teeth terms texas thank theft their theme there these thick thing "+
-  "think third those three threw throw thumb tiger tight times tired title today token topic total touch "+
-  "tough tower track trade trail train treat trend trial tribe trick tried tries truck truly trust truth "+
-  "twice under undue union unity until upper upset urban usage usual valid value video virus visit vital "+
-  "vocal voice waste watch water wheel where which while white whole whose woman world worry worse worst "+
-  "worth would wound write wrong wrote yield young youth").split(/\s+/);
+  var ANSWERS = (
+  "earth match fresh drill track early leave third truck vocal admit phase doubt solve drink "+
+  "super again three guide speak grade grave aware start worth until board about gross index "+
+  "least built links reach prove might tiger cache black alike fleet glass taken terms meter "+
+  "exist minus party shirt drank first needs queen sense cheap storm panel water asset trial "+
+  "think ratio agree union yield arena would enemy click south quite sweet world pitch newly "+
+  "entry forum among basic blast paper space tries alone worry fixed agent charm dozen truth "+
+  "dance going crazy stand fraud north rival whose forth proof month input dealt paint laser "+
+  "shoot video shall fight fault empty stage mount hence suite fiber begun alarm flame study "+
+  "blind eight crash inner trust audio noise buyer today rough shine taste craft lunch break "+
+  "touch royal spare check apply unity where below label equal broad plane roman sixth vital "+
+  "sheep drama reply quick layer catch array whole table ahead china exact sheet steer heart "+
+  "curve valid motor chief hotel price setup brain human bound enter armor prior cream cloud "+
+  "crown audit clock pound brown shown small cover magic cable thick worse abuse total raise "+
+  "lives scope front spoke shift these blame waste nurse noted force every frank teach apart "+
+  "media guess brave loose wheel music seven theft build photo learn ghost pilot score daily "+
+  "taxes along piece money order arise stone fluid alter allow issue carry visit fully grain "+
+  "treat draft stood smart brick chaos minor upset round house write death aside chain stuff "+
+  "times guard point focus rebel value rural piano shape mayor harsh fifty cross never since "+
+  "above plate movie anger light judge funny mouth sharp after dying block giant logic wrote "+
+  "prime offer twice quiet wrong steam dream horse limit rapid trade speed frame their booth "+
+  "angry press scene staff grown steep refer sixty cycle youth clear which avoid undue bench "+
+  "sugar adopt drive meant heavy ideal woman lucky chart teeth ready stick there throw pride "+
+  "plain sized state thing chair blank right given stock chest enjoy drawn trail mouse adult "+
+  "green short tribe moral clean joint route wound blood shelf theme climb error peace smile "+
+  "river begin crowd civil tower plant truly stuck place cargo class ocean bases mixed album "+
+  "level often shell sight serve scale silly birth night fifth slide boost angle other robin "+
+  "chase bring event great spent frost style trend sound thank voice trick relax count march "+
+  "known debut shock share token spend delay close maker print badly legal threw grand phone "+
+  "laugh cause tough steel major usual realm being acute radio split range lying coach white "+
+  "floor upper child still model prize doing elite court cliff skill urban drove medal later "+
+  "grass stake coast watch ought solid story thumb store power claim topic maybe usage depth "+
+  "field those alert baker image final forty beach proud grant began occur award large sport "+
+  "tried globe novel sleep alive extra found lower group apple local lemon flash bread argue "+
+  "false under guest while civic crime could sorry eager smoke strip nerve worst train tired "+
+  "broke title greet young grace breed tight fruit metal lease chill dated happy virus brand "+
+  "brief chose dress actor crude").split(/\s+/);
 
   var EPOCH = Date.UTC(2026,0,1);
   function pad(n){return (n<10?"0":"")+n;}
   function dayIndex(d){return Math.floor((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-EPOCH)/86400000);}
   function todayKey(){var d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
   function wordForDate(dateKey){var p=dateKey.split("-");var d=new Date(+p[0],+p[1]-1,+p[2]);var idx=((dayIndex(d)%ANSWERS.length)+ANSWERS.length)%ANSWERS.length;return ANSWERS[idx].toUpperCase();}
+  function keyToDate(k){var p=k.split("-");return new Date(+p[0],+p[1]-1,+p[2]);}
+  function dateToKey(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+  function addDays(d,n){var x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()+n);return x;}
+  function mondayOf(d){var x=new Date(d);x.setHours(0,0,0,0);var wd=x.getDay();return addDays(x,(wd===0?-6:1-wd));}
+  function isBusinessDay(d){var wd=d.getDay();return wd>=1&&wd<=5;}
+  function businessDaysBetween(start,end){if(end<start)return 0;var c=0,x=new Date(start);x.setHours(0,0,0,0);var e=new Date(end);e.setHours(0,0,0,0);while(x<=e){if(isBusinessDay(x))c++;x=addDays(x,1);}return c;}
+  function lastCompletedBusinessDay(){var x=addDays(new Date(),-1);while(!isBusinessDay(x))x=addDays(x,-1);return x;}
+  function isPlayDay(){return isBusinessDay(new Date());}
+  function nextPlayDay(){var x=addDays(new Date(),1);while(!isBusinessDay(x))x=addDays(x,1);return x;}
+  var MISS_PENALTY=0.25; // points added to a player's score for each missed business day (gentle)
 
   /* ===== Local mirror of shared data ===== */
   var PLAYERS=[];   // [name,...]
@@ -301,7 +335,8 @@
     if(guess.length<COLS){toast("Not enough letters");return;}
     if(!/^[A-Z]{5}$/.test(guess)){toast("Letters only");return;}
     var res=scoreGuess(guess,game.answer);
-    for(var c=0;c<COLS;c++){(function(c){setTimeout(function(){var t=tileAt(game.row,c);t.classList.add(statusClass(res[c]));paintKey(guess[c],res[c]);},c*180);})(c);}
+    var rowIndex=game.row;
+    for(var c=0;c<COLS;c++){(function(c){setTimeout(function(){var t=tileAt(rowIndex,c);t.classList.add(statusClass(res[c]));paintKey(guess[c],res[c]);},c*180);})(c);}
     game.guesses.push(guess);game.patterns.push(res);
     var won=res.every(function(x){return x==="c";});
     game.row++;game.col=0;
@@ -332,8 +367,13 @@
 
   function setPlayStatus(){
     var player=$("playerSelect").value;var date=todayKey();
-    $("dayBadge").textContent="Puzzle #"+(dayIndex(new Date())+1);
     var status=$("playStatus");
+    if(!isPlayDay()){
+      $("dayBadge").textContent="Weekend";
+      status.innerHTML="🏆 The Wordle Cup runs <strong>Monday–Friday</strong>. No puzzle today — see you "+nextPlayDay().toLocaleDateString(undefined,{weekday:"long"})+"!";
+      return;
+    }
+    $("dayBadge").textContent="Puzzle #"+(dayIndex(new Date())+1);
     if(!player){status.textContent="Pick your name above to play today's puzzle.";return;}
     if(game&&!game.over){status.textContent=player+" — solve today's word. Type or use the on-screen keys.";return;}
     var rec=getResult(player,date);
@@ -343,6 +383,7 @@
 
   $("playerSelect").addEventListener("change",function(){
     var player=this.value;var date=todayKey();
+    if(!isPlayDay()){buildBoard();buildKeyboard();$("timer").textContent="00:00";game=null;stopTimer();setPlayStatus();return;}
     if(!player){buildBoard();buildKeyboard();$("timer").textContent="00:00";game=null;stopTimer();setPlayStatus();return;}
     if(alreadyPlayed(player,date)){lockBoardFinished(getResult(player,date));setPlayStatus();}
     else{newGame(player);setPlayStatus();}
@@ -360,21 +401,41 @@
   /* ===== Standings ===== */
   function computeStats(){
     var byPlayer={};
-    PLAYERS.forEach(function(p){byPlayer[p]={player:p,played:0,solved:0,sumGuesses:0,sumTime:0,best:99,dailyWins:0};});
+    function ensure(p){if(!byPlayer[p])byPlayer[p]={player:p,played:0,solved:0,sumGuesses:0,sumTime:0,best:99,dailyWins:0,dates:{},firstPlay:null};return byPlayer[p];}
+    PLAYERS.forEach(function(p){ensure(p);});
     RESULTS.forEach(function(r){
-      if(!byPlayer[r.player])byPlayer[r.player]={player:r.player,played:0,solved:0,sumGuesses:0,sumTime:0,best:99,dailyWins:0};
-      var s=byPlayer[r.player];s.played++;if(r.solved){s.solved++;if(r.guesses<s.best)s.best=r.guesses;}s.sumGuesses+=r.guesses;s.sumTime+=r.timeMs;
+      var s=ensure(r.player);
+      s.played++;if(r.solved){s.solved++;if(r.guesses<s.best)s.best=r.guesses;}s.sumGuesses+=r.guesses;s.sumTime+=r.timeMs;
+      s.dates[r.date]=true;if(!s.firstPlay||r.date<s.firstPlay)s.firstPlay=r.date;
     });
     var byDate={};RESULTS.forEach(function(r){(byDate[r.date]=byDate[r.date]||[]).push(r);});
     Object.keys(byDate).forEach(function(d){var so=byDate[d].filter(function(r){return r.solved;});var pool=so.length?so:byDate[d];pool.sort(function(a,b){return a.guesses-b.guesses||a.timeMs-b.timeMs;});if(pool.length&&byPlayer[pool[0].player])byPlayer[pool[0].player].dailyWins++;});
-    var arr=Object.keys(byPlayer).map(function(k){var s=byPlayer[k];s.avgGuess=s.played?s.sumGuesses/s.played:null;s.avgTime=s.played?s.sumTime/s.played:null;return s;}).filter(function(s){return s.played>0;});
-    arr.sort(function(a,b){if(a.avgGuess!==b.avgGuess)return a.avgGuess-b.avgGuess;return a.avgTime-b.avgTime;});
+    var windowEnd=lastCompletedBusinessDay();
+    var arr=Object.keys(byPlayer).map(function(k){
+      var s=byPlayer[k];
+      s.avgGuess=s.played?s.sumGuesses/s.played:null;
+      s.avgTime=s.played?s.sumTime/s.played:null;
+      s.missed=0;
+      if(s.firstPlay){
+        var start=keyToDate(s.firstPlay);start.setHours(0,0,0,0);
+        if(windowEnd>=start){
+          var expected=businessDaysBetween(start,windowEnd);
+          var playedInWindow=0;
+          Object.keys(s.dates).forEach(function(dk){var dd=keyToDate(dk);if(isBusinessDay(dd)&&dd>=start&&dd<=windowEnd)playedInWindow++;});
+          s.missed=Math.max(0,expected-playedInWindow);
+        }
+      }
+      s.penalty=s.missed*MISS_PENALTY;
+      s.score=(s.avgGuess!=null)?(s.avgGuess+s.penalty):null;
+      return s;
+    }).filter(function(s){return s.played>0;});
+    arr.sort(function(a,b){if(a.score!==b.score)return a.score-b.score;return a.avgTime-b.avgTime;});
     return arr;
   }
   function renderStandings(){
     var data=computeStats();var me=$("playerSelect").value;
     var tb=$("standingsTable").querySelector("tbody");tb.innerHTML="";
-    if(!data.length){var tr=el("tr");var td=el("td",null,"No games played yet. Head to the Play tab!");td.colSpan=8;td.style.padding="22px";td.className="muted";tr.appendChild(td);tb.appendChild(tr);}
+    if(!data.length){var tr=el("tr");var td=el("td",null,"No games played yet. Head to the Play tab!");td.colSpan=9;td.style.padding="22px";td.className="muted";tr.appendChild(td);tb.appendChild(tr);}
     data.forEach(function(s,i){
       var tr=el("tr");if(s.player===me)tr.className="me";
       var medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
@@ -383,18 +444,19 @@
       tr.appendChild(el("td",null,""+s.played));
       tr.appendChild(el("td",null,s.solved+"/"+s.played));
       tr.appendChild(el("td",null,s.avgGuess.toFixed(2)));
-      tr.appendChild(el("td",null,s.best<99?(""+s.best):"—"));
+      tr.appendChild(el("td",null,s.missed?(s.missed+" (+"+s.penalty.toFixed(2)+")"):"0"));
+      var scoreTd=el("td",null,s.score.toFixed(2));scoreTd.style.fontWeight="700";tr.appendChild(scoreTd);
       tr.appendChild(el("td",null,fmtTime(s.avgTime)));
       tr.appendChild(el("td",null,s.dailyWins?("🏅"+(s.dailyWins>1?" ×"+s.dailyWins:"")):"—"));
       tb.appendChild(tr);
     });
     var aw=$("awards");aw.innerHTML="";
     if(data.length){
-      var golden=data.slice().sort(function(a,b){return a.avgGuess-b.avgGuess||a.avgTime-b.avgTime;})[0];
+      var golden=data.slice().sort(function(a,b){return a.score-b.score||a.avgTime-b.avgTime;})[0];
       var fastest=data.slice().filter(function(s){return s.solved>0;}).sort(function(a,b){return a.avgTime-b.avgTime;})[0];
       var mostWins=data.slice().sort(function(a,b){return b.dailyWins-a.dailyWins;})[0];
       var iron=data.slice().sort(function(a,b){return b.played-a.played;})[0];
-      addAward(aw,"🏆","Cup Leader",golden?golden.player+" · "+golden.avgGuess.toFixed(2)+" avg":"—");
+      addAward(aw,"🏆","Cup Leader",golden?golden.player+" · "+golden.score.toFixed(2)+" score":"—");
       addAward(aw,"⚡","Fastest Solver",fastest?fastest.player+" · "+fmtTime(fastest.avgTime)+" avg":"—");
       addAward(aw,"🏅","Most Daily Wins",mostWins&&mostWins.dailyWins?mostWins.player+" · "+mostWins.dailyWins:"—");
       addAward(aw,"💪","Iron Streak (most games)",iron?iron.player+" · "+iron.played:"—");
@@ -402,26 +464,51 @@
   }
   function addAward(parent,ico,title,val){var d=el("div","award");d.appendChild(el("div","ico",ico));var box=el("div");box.appendChild(el("div","t",title));box.appendChild(el("div","muted",val));d.appendChild(box);parent.appendChild(d);}
 
-  /* ===== Daily ===== */
-  function miniTiles(pattern){var span=el("span","gtiles");(pattern||[]).forEach(function(s){var i=el("i");i.className="gt-"+s;span.appendChild(i);});return span;}
+  /* ===== Calendar (Mon–Fri) ===== */
+  var DAYNAMES=["Mon","Tue","Wed","Thu","Fri"];
   function renderDaily(){
     var list=$("dailyList");list.innerHTML="";
     var byDate={};RESULTS.forEach(function(r){(byDate[r.date]=byDate[r.date]||[]).push(r);});
-    var dates=Object.keys(byDate).sort().reverse();
-    if(!dates.length){list.appendChild(el("div","muted","No results yet."));return;}
-    dates.forEach(function(d){
-      var rows=byDate[d].slice();
-      var so=rows.filter(function(r){return r.solved;});var pool=so.length?so:rows;
-      pool.sort(function(a,b){return a.guesses-b.guesses||a.timeMs-b.timeMs;});
-      var winner=pool[0];
-      rows.sort(function(a,b){if(a.solved!==b.solved)return a.solved?-1:1;return a.guesses-b.guesses||a.timeMs-b.timeMs;});
-      var block=el("div","daily-block");var head=el("div","daily-head");
-      head.appendChild(el("div","date",new Date(d+"T00:00:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})+"  ·  "+wordForDate(d)));
-      if(winner)head.appendChild((function(){var w=el("span","win-tag","🏅 "+winner.player);return w;})());
-      block.appendChild(head);
-      rows.forEach(function(r){var row=el("div","result-row");var left=el("span");left.textContent=r.player+"  ";if(r.patterns&&r.patterns.length)left.appendChild(miniTiles(r.patterns[r.patterns.length-1]));var right=el("span");right.innerHTML=(r.solved?("<strong>"+r.guesses+"</strong>/6"):"X/6")+" · "+fmtTime(r.timeMs);row.appendChild(left);row.appendChild(right);block.appendChild(row);});
-      list.appendChild(block);
-    });
+    var today=new Date();today.setHours(0,0,0,0);
+    var thisMonday=mondayOf(today);
+    var firstMonday=thisMonday;
+    var keys=Object.keys(byDate);
+    if(keys.length){keys.sort();var fm=mondayOf(keyToDate(keys[0]));if(fm<firstMonday)firstMonday=fm;}
+    for(var wm=new Date(thisMonday);wm>=firstMonday;wm=addDays(wm,-7)){
+      var weekMonday=new Date(wm);
+      var fri=addDays(weekMonday,4);
+      var wrap=el("div","cal-week");
+      wrap.appendChild(el("div","cal-weeklabel",weekMonday.toLocaleDateString(undefined,{month:"short",day:"numeric"})+" – "+fri.toLocaleDateString(undefined,{month:"short",day:"numeric"})));
+      var grid=el("div","cal-grid");
+      for(var i=0;i<5;i++){
+        var day=addDays(weekMonday,i);
+        var dk=dateToKey(day);
+        var cell=el("div","cal-cell");
+        if(dk===dateToKey(today))cell.classList.add("today");
+        if(day>today)cell.classList.add("future");
+        var dh=el("div","cal-dayhead");
+        dh.appendChild(el("span","cal-dn",DAYNAMES[i]));
+        dh.appendChild(el("span","cal-dd",""+day.getDate()));
+        cell.appendChild(dh);
+        var rows=byDate[dk];
+        if(rows&&rows.length){
+          var sorted=rows.slice().sort(function(a,b){if(a.solved!==b.solved)return a.solved?-1:1;return a.guesses-b.guesses||a.timeMs-b.timeMs;});
+          var medals=["🥇","🥈","🥉"];
+          sorted.slice(0,3).forEach(function(r,idx){
+            var medal=r.solved?medals[idx]:"";
+            var p=el("div","cal-play"+(idx===0&&r.solved?" win":""));
+            p.appendChild(el("span","cal-name",(medal?medal+" ":"")+r.player));
+            p.appendChild(el("span","cal-score",(r.solved?(r.guesses+"/6"):"X/6")+" · "+fmtTime(r.timeMs)));
+            cell.appendChild(p);
+          });
+        } else if(day<=today){
+          cell.appendChild(el("div","cal-empty","—"));
+        }
+        grid.appendChild(cell);
+      }
+      wrap.appendChild(grid);
+      list.appendChild(wrap);
+    }
   }
 
   /* ===== Admin ===== */
@@ -458,6 +545,19 @@
     if(r.error)toast("Couldn't save season");else toast("Season saved");
   });
   $("copyLink").addEventListener("click",function(){var i=$("shareLink");i.select();try{document.execCommand('copy');}catch(e){}if(navigator.clipboard)navigator.clipboard.writeText(i.value);toast("Link copied");});
+  $("resetBtn").addEventListener("click",async function(){
+    var typed=prompt("This clears ALL scores and daily history for the whole team. The roster stays.\n\nType RESET to confirm:");
+    if(typed===null)return;
+    if(typed.trim().toUpperCase()!=="RESET"){toast("Reset cancelled");return;}
+    var r=await sb.from('results').delete().gte('id',0);
+    if(r.error){toast("Couldn't reset — try again");return;}
+    RESULTS=[];
+    buildBoard();buildKeyboard();game=null;stopTimer();$("timer").textContent="00:00";
+    setPlayStatus();
+    if(!$("tab-standings").classList.contains("hidden"))renderStandings();
+    if(!$("tab-daily").classList.contains("hidden"))renderDaily();
+    toast("Leaderboard reset — everyone can play again");
+  });
   function applySeason(){$("seasonPill").textContent=SEASON||"Season";}
 
   /* ===== Realtime ===== */
