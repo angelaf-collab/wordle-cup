@@ -123,9 +123,14 @@
   <section id="tab-play">
     <div class="card">
       <div class="pillbar">
-        <div class="row">
-          <label for="playerSelect"><strong>Player:</strong></label>
+        <div class="row" id="chooserRow">
+          <label for="playerSelect"><strong>Who are you?</strong></label>
           <select id="playerSelect"><option value="">— choose your name —</option></select>
+          <button class="btn gold" id="confirmMe" style="padding:8px 14px">This is me</button>
+        </div>
+        <div class="row hidden" id="lockedRow">
+          <span>Playing as <strong id="meName"></strong></span>
+          <button class="btn ghost" id="switchMe" style="padding:6px 12px;font-size:13px">Not you? Switch</button>
         </div>
         <div class="row">
           <span class="badge" id="dayBadge">Puzzle —</span>
@@ -269,6 +274,12 @@
   var RESULTS=[];   // [{date,player,solved,guesses,timeMs,patterns,words}]
   var SEASON="Wordle Cup 2026";
 
+  /* ===== Per-device player identity (claim your name once) ===== */
+  var ME=null;
+  function getMe(){if(ME)return ME;try{var v=localStorage.getItem('wordleCupMe');if(v){ME=v;return v;}}catch(e){}return null;}
+  function setMe(name){ME=name;try{localStorage.setItem('wordleCupMe',name);}catch(e){}}
+  function clearMe(){ME=null;try{localStorage.removeItem('wordleCupMe');}catch(e){}}
+
   function normResult(r){return {date:r.play_date,player:r.player,solved:r.solved,guesses:r.guesses,timeMs:r.time_ms,patterns:r.patterns||[],words:r.words||[]};}
 
   async function fetchPlayers(){var r=await sb.from('players').select('name').order('name');if(!r.error)PLAYERS=r.data.map(function(x){return x.name;});}
@@ -316,7 +327,7 @@
   function startTimer(){stopTimer();timerInterval=setInterval(function(){if(!game||game.over)return;$("timer").textContent=fmtTime(game.elapsedBefore+(Date.now()-game.startTime));},250);}
   function stopTimer(){if(timerInterval){clearInterval(timerInterval);timerInterval=null;}}
 
-  function newGame(player){var date=todayKey();game={answer:wordForDate(date),date:date,row:0,col:0,guesses:[],patterns:[],over:false,won:false,startTime:Date.now(),elapsedBefore:0,player:player};buildBoard();buildKeyboard();$("timer").textContent="00:00";startTimer();}
+  function newGame(player){var date=todayKey();game={answer:wordForDate(date),date:date,row:0,col:0,guesses:[],patterns:[],over:false,won:false,started:false,startTime:0,elapsedBefore:0,player:player};buildBoard();buildKeyboard();$("timer").textContent="00:00";stopTimer();}
 
   function lockBoardFinished(record){buildBoard();buildKeyboard();game=null;stopTimer();(record.patterns||[]).forEach(function(pat,r){var word=record.words?record.words[r]:null;for(var c=0;c<COLS;c++){var t=tileAt(r,c);if(word)t.textContent=word[c];t.classList.add("filled",statusClass(pat[c]));}});if(record.words){record.words.forEach(function(w,r){for(var c=0;c<COLS;c++){paintKey(w[c],record.patterns[r][c]);}});}$("timer").textContent=fmtTime(record.timeMs);}
 
@@ -324,7 +335,7 @@
     if(!game||game.over)return;
     if(k==="ENTER"){submitGuess();return;}
     if(k==="DEL"){if(game.col>0){game.col--;var t=tileAt(game.row,game.col);t.textContent="";t.classList.remove("filled");}return;}
-    if(/^[A-Z]$/.test(k)&&game.col<COLS){var t=tileAt(game.row,game.col);t.textContent=k;t.classList.add("filled","pop");setTimeout(function(){t.classList.remove("pop");},100);game.col++;}
+    if(/^[A-Z]$/.test(k)&&game.col<COLS){if(!game.started){game.started=true;game.startTime=Date.now();startTimer();}var t=tileAt(game.row,game.col);t.textContent=k;t.classList.add("filled","pop");setTimeout(function(){t.classList.remove("pop");},100);game.col++;}
   }
   function currentWord(){var w="";for(var c=0;c<COLS;c++){w+=(tileAt(game.row,c).textContent||"");}return w;}
   function scoreGuess(guess,answer){var res=["a","a","a","a","a"];var ans=answer.split("");var used=[false,false,false,false,false];for(var i=0;i<COLS;i++){if(guess[i]===ans[i]){res[i]="c";used[i]=true;}}for(var j=0;j<COLS;j++){if(res[j]==="c")continue;for(var k=0;k<COLS;k++){if(!used[k]&&guess[j]===ans[k]){res[j]="p";used[k]=true;break;}}}return res;}
@@ -381,13 +392,32 @@
     else{status.textContent=player+" hasn't played today. Press any letter to begin — the timer starts now.";}
   }
 
-  $("playerSelect").addEventListener("change",function(){
-    var player=this.value;var date=todayKey();
+  function activatePlayer(name){
+    $("playerSelect").value=name;
+    var date=todayKey();
     if(!isPlayDay()){buildBoard();buildKeyboard();$("timer").textContent="00:00";game=null;stopTimer();setPlayStatus();return;}
-    if(!player){buildBoard();buildKeyboard();$("timer").textContent="00:00";game=null;stopTimer();setPlayStatus();return;}
-    if(alreadyPlayed(player,date)){lockBoardFinished(getResult(player,date));setPlayStatus();}
-    else{newGame(player);setPlayStatus();}
+    if(alreadyPlayed(name,date)){lockBoardFinished(getResult(name,date));setPlayStatus();}
+    else{newGame(name);setPlayStatus();}
+  }
+  function showLocked(name){
+    $("meName").textContent=name;
+    $("chooserRow").classList.add("hidden");
+    $("lockedRow").classList.remove("hidden");
+  }
+  function showChooser(){
+    $("lockedRow").classList.add("hidden");
+    $("chooserRow").classList.remove("hidden");
+    $("playerSelect").value="";
+    buildBoard();buildKeyboard();$("timer").textContent="00:00";game=null;stopTimer();
+    $("dayBadge").textContent=isPlayDay()?("Puzzle #"+(dayIndex(new Date())+1)):"Weekend";
+    $("playStatus").textContent="Pick your name once to claim it on this device — then you'll always play as yourself.";
+  }
+  $("confirmMe").addEventListener("click",function(){
+    var name=$("playerSelect").value;
+    if(!name){toast("Pick your name from the list first");return;}
+    setMe(name);showLocked(name);activatePlayer(name);
   });
+  $("switchMe").addEventListener("click",function(){clearMe();showChooser();});
 
   document.addEventListener("keydown",function(e){
     if($("tab-play").classList.contains("hidden"))return;
@@ -597,7 +627,9 @@
     }catch(e){
       toast("Couldn't reach the database. Check your connection and refresh.");
     }
-    applySeason();refreshPlayerSelect();setPlayStatus();
+    applySeason();refreshPlayerSelect();
+    var me=getMe();
+    if(me){showLocked(me);activatePlayer(me);}else{showChooser();}
     subscribe();
     $("loading").style.display="none";
   }
