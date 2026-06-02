@@ -144,6 +144,29 @@
       <div id="board"></div>
       <div id="keyboard"></div>
     </div>
+    <div class="card">
+      <details id="rulesBox">
+        <summary style="cursor:pointer;font-weight:700;font-size:16px;list-style:none">📖 How to play &amp; scoring</summary>
+        <div style="margin-top:12px;line-height:1.6;color:#3a4a3e;font-size:14px">
+          <p style="margin:0 0 10px"><strong>The game.</strong> One puzzle a day, <strong>Monday–Friday</strong>. Everyone on the team solves the exact same five-letter word, and you get six tries. After each guess the tiles tell you how close you were:</p>
+          <ul style="margin:0 0 10px;padding-left:18px">
+            <li style="margin-bottom:4px"><i style="display:inline-block;width:13px;height:13px;border-radius:2px;background:var(--correct);vertical-align:middle"></i> <strong>Green</strong> — right letter, right spot.</li>
+            <li style="margin-bottom:4px"><i style="display:inline-block;width:13px;height:13px;border-radius:2px;background:var(--present);vertical-align:middle"></i> <strong>Yellow</strong> — right letter, wrong spot.</li>
+            <li style="margin-bottom:4px"><i style="display:inline-block;width:13px;height:13px;border-radius:2px;background:var(--absent);vertical-align:middle"></i> <strong>Grey</strong> — not in the word.</li>
+          </ul>
+          <p style="margin:0 0 10px">Your timer starts on your <strong>first letter</strong> and stops the moment you solve it, so think before you type. You get one shot per day — if you leave mid-game and the day rolls over, that attempt is lost.</p>
+          <p style="margin:0 0 10px"><strong>Your name.</strong> Pick your name once and this device remembers you — from then on you always play as yourself, no dropdown to fumble. Prefer something more casual? Tap <strong>Rename</strong>.</p>
+          <p style="margin:0 0 6px"><strong>Scoring — most points wins the Cup.</strong> Each day you can earn:</p>
+          <ul style="margin:0 0 10px;padding-left:18px">
+            <li style="margin-bottom:4px"><strong>Solve points:</strong> 6 for solving in 1 guess, 5 for 2, down to 1 for 6 (0 if you don't get it).</li>
+            <li style="margin-bottom:4px"><strong>Speed bonus:</strong> +1 to the day's fastest solver.</li>
+            <li style="margin-bottom:4px"><strong>Streak bonus:</strong> play all five weekdays in a week to earn a streak point — 1 for your first full week, 2 for the next consecutive full week, then 3, and so on. Miss a day and your streak resets the following Monday.</li>
+            <li style="margin-bottom:4px"><strong>Missed days:</strong> −1 point for each weekday you skip (your total never drops below 0). Weekends are off — skipping them never costs you anything.</li>
+          </ul>
+          <p style="margin:0">Ties are broken by the <strong>fewest average guesses</strong>, then the <strong>fastest average time</strong>. The leaderboard updates live as teammates play.</p>
+        </div>
+      </details>
+    </div>
   </section>
 
   <section id="tab-standings" class="hidden">
