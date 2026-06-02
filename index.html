@@ -108,7 +108,7 @@
 
 <header class="app">
   <h1><span class="trophy">🏆</span> Wordle Cup</h1>
-  <div class="sub">One puzzle a day. Everyone solves the same word. Fewest guesses takes the crown.</div>
+  <div class="sub">One puzzle a day. Everyone solves the same word. Earn points — solve sharp, stay quick, keep your weekday streak alive.</div>
   <div><span class="season-pill" id="seasonPill">Season</span><span class="live-dot" id="liveDot"><span class="d"></span>live</span></div>
 </header>
 
@@ -148,10 +148,10 @@
   <section id="tab-standings" class="hidden">
     <div class="card">
       <h2>League Table</h2>
-      <div class="muted" style="margin-bottom:8px">Ranked by <strong>Score</strong> = average guesses + a small penalty for missed weekdays (<strong>+0.25 per missed day</strong> once you've started). Lower is better; ties broken by <strong>average solve time</strong>. Updates live.</div>
+      <div class="muted" style="margin-bottom:8px"><strong>Most points wins.</strong> Points = solve points (6 for a 1-guess solve down to 1 for a 6-guess solve) + a daily speed bonus (+1 to the day's fastest solver) + a weekly streak bonus (a full Mon–Fri week = 1 pt, the next consecutive full week = 2, then 3…) − 1 per missed weekday. Ties broken by fewest average guesses, then fastest time. Points never drop below 0. Updates live.</div>
       <div style="overflow-x:auto">
         <table id="standingsTable">
-          <thead><tr><th>#</th><th style="text-align:left">Player</th><th title="Games played">P</th><th>Solved</th><th title="Average guesses (X = 7)">Avg Guess</th><th title="Missed weekdays (penalty)">Missed</th><th title="Avg guesses + miss penalty">Score</th><th>Avg Time</th><th title="Daily wins">🏅</th></tr></thead>
+          <thead><tr><th>#</th><th style="text-align:left">Player</th><th title="Games played">P</th><th>Solved</th><th title="Average guesses">Avg Guess</th><th title="Consecutive full Mon–Fri weeks">🔥</th><th title="Missed weekdays (−1 each)">Missed</th><th title="Total points">Points</th><th title="Average solve time">Time</th><th title="Daily wins">🏅</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -431,20 +431,33 @@
   /* ===== Standings ===== */
   function computeStats(){
     var byPlayer={};
-    function ensure(p){if(!byPlayer[p])byPlayer[p]={player:p,played:0,solved:0,sumGuesses:0,sumTime:0,best:99,dailyWins:0,dates:{},firstPlay:null};return byPlayer[p];}
+    function ensure(p){if(!byPlayer[p])byPlayer[p]={player:p,played:0,solved:0,sumGuesses:0,sumTime:0,best:99,dailyWins:0,dates:{},firstPlay:null,guessPts:0};return byPlayer[p];}
     PLAYERS.forEach(function(p){ensure(p);});
     RESULTS.forEach(function(r){
       var s=ensure(r.player);
-      s.played++;if(r.solved){s.solved++;if(r.guesses<s.best)s.best=r.guesses;}s.sumGuesses+=r.guesses;s.sumTime+=r.timeMs;
+      s.played++;
+      if(r.solved){s.solved++;if(r.guesses<s.best)s.best=r.guesses;s.guessPts+=(7-r.guesses);}
+      s.sumGuesses+=r.guesses;s.sumTime+=r.timeMs;
       s.dates[r.date]=true;if(!s.firstPlay||r.date<s.firstPlay)s.firstPlay=r.date;
     });
+    // daily winner (fewest guesses, then time) + speed bonus (fastest solver each day)
     var byDate={};RESULTS.forEach(function(r){(byDate[r.date]=byDate[r.date]||[]).push(r);});
-    Object.keys(byDate).forEach(function(d){var so=byDate[d].filter(function(r){return r.solved;});var pool=so.length?so:byDate[d];pool.sort(function(a,b){return a.guesses-b.guesses||a.timeMs-b.timeMs;});if(pool.length&&byPlayer[pool[0].player])byPlayer[pool[0].player].dailyWins++;});
+    var speed={};
+    Object.keys(byDate).forEach(function(d){
+      var day=byDate[d];
+      var so=day.filter(function(r){return r.solved;});
+      var pool=so.length?so:day;
+      var win=pool.slice().sort(function(a,b){return a.guesses-b.guesses||a.timeMs-b.timeMs;})[0];
+      if(win&&byPlayer[win.player])byPlayer[win.player].dailyWins++;
+      if(so.length){var minT=Math.min.apply(null,so.map(function(r){return r.timeMs;}));so.forEach(function(r){if(r.timeMs===minT)speed[r.player]=(speed[r.player]||0)+1;});}
+    });
     var windowEnd=lastCompletedBusinessDay();
     var arr=Object.keys(byPlayer).map(function(k){
       var s=byPlayer[k];
       s.avgGuess=s.played?s.sumGuesses/s.played:null;
       s.avgTime=s.played?s.sumTime/s.played:null;
+      s.speedPts=speed[k]||0;
+      // missed weekdays since first play (−1 each)
       s.missed=0;
       if(s.firstPlay){
         var start=keyToDate(s.firstPlay);start.setHours(0,0,0,0);
@@ -455,17 +468,30 @@
           s.missed=Math.max(0,expected-playedInWindow);
         }
       }
-      s.penalty=s.missed*MISS_PENALTY;
-      s.score=(s.avgGuess!=null)?(s.avgGuess+s.penalty):null;
+      // streak bonus: consecutive full Mon–Fri weeks (1,2,3…), reset on any miss
+      s.streakPts=0;s.streak=0;
+      if(s.firstPlay){
+        var wkMon=mondayOf(keyToDate(s.firstPlay));var counter=0;
+        while(true){
+          var fri=addDays(wkMon,4);
+          if(fri>windowEnd)break;
+          var allFive=true;
+          for(var i=0;i<5;i++){if(!s.dates[dateToKey(addDays(wkMon,i))]){allFive=false;break;}}
+          if(allFive){counter++;s.streakPts+=counter;}else{counter=0;}
+          wkMon=addDays(wkMon,7);
+        }
+        s.streak=counter;
+      }
+      s.points=Math.max(0,s.guessPts+s.speedPts+s.streakPts-s.missed);
       return s;
     }).filter(function(s){return s.played>0;});
-    arr.sort(function(a,b){if(a.score!==b.score)return a.score-b.score;return a.avgTime-b.avgTime;});
+    arr.sort(function(a,b){if(b.points!==a.points)return b.points-a.points;if(a.avgGuess!==b.avgGuess)return a.avgGuess-b.avgGuess;return a.avgTime-b.avgTime;});
     return arr;
   }
   function renderStandings(){
     var data=computeStats();var me=$("playerSelect").value;
     var tb=$("standingsTable").querySelector("tbody");tb.innerHTML="";
-    if(!data.length){var tr=el("tr");var td=el("td",null,"No games played yet. Head to the Play tab!");td.colSpan=9;td.style.padding="22px";td.className="muted";tr.appendChild(td);tb.appendChild(tr);}
+    if(!data.length){var tr=el("tr");var td=el("td",null,"No games played yet. Head to the Play tab!");td.colSpan=10;td.style.padding="22px";td.className="muted";tr.appendChild(td);tb.appendChild(tr);}
     data.forEach(function(s,i){
       var tr=el("tr");if(s.player===me)tr.className="me";
       var medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
@@ -474,22 +500,23 @@
       tr.appendChild(el("td",null,""+s.played));
       tr.appendChild(el("td",null,s.solved+"/"+s.played));
       tr.appendChild(el("td",null,s.avgGuess.toFixed(2)));
-      tr.appendChild(el("td",null,s.missed?(s.missed+" (+"+s.penalty.toFixed(2)+")"):"0"));
-      var scoreTd=el("td",null,s.score.toFixed(2));scoreTd.style.fontWeight="700";tr.appendChild(scoreTd);
+      tr.appendChild(el("td",null,s.streak?("🔥"+s.streak):"—"));
+      tr.appendChild(el("td",null,s.missed?("-"+s.missed):"0"));
+      var ptd=el("td",null,""+s.points);ptd.style.fontWeight="700";tr.appendChild(ptd);
       tr.appendChild(el("td",null,fmtTime(s.avgTime)));
       tr.appendChild(el("td",null,s.dailyWins?("🏅"+(s.dailyWins>1?" ×"+s.dailyWins:"")):"—"));
       tb.appendChild(tr);
     });
     var aw=$("awards");aw.innerHTML="";
     if(data.length){
-      var golden=data.slice().sort(function(a,b){return a.score-b.score||a.avgTime-b.avgTime;})[0];
+      var leader=data[0];
       var fastest=data.slice().filter(function(s){return s.solved>0;}).sort(function(a,b){return a.avgTime-b.avgTime;})[0];
-      var mostWins=data.slice().sort(function(a,b){return b.dailyWins-a.dailyWins;})[0];
-      var iron=data.slice().sort(function(a,b){return b.played-a.played;})[0];
-      addAward(aw,"🏆","Cup Leader",golden?golden.player+" · "+golden.score.toFixed(2)+" score":"—");
+      var hot=data.slice().sort(function(a,b){return b.streak-a.streak;})[0];
+      var sharp=data.slice().filter(function(s){return s.solved>0;}).sort(function(a,b){return a.avgGuess-b.avgGuess;})[0];
+      addAward(aw,"🏆","Cup Leader",leader?leader.player+" · "+leader.points+" pts":"—");
+      addAward(aw,"🔥","Hottest Streak",hot&&hot.streak?hot.player+" · "+hot.streak+" wk"+(hot.streak>1?"s":""):"—");
       addAward(aw,"⚡","Fastest Solver",fastest?fastest.player+" · "+fmtTime(fastest.avgTime)+" avg":"—");
-      addAward(aw,"🏅","Most Daily Wins",mostWins&&mostWins.dailyWins?mostWins.player+" · "+mostWins.dailyWins:"—");
-      addAward(aw,"💪","Iron Streak (most games)",iron?iron.player+" · "+iron.played:"—");
+      addAward(aw,"🎯","Sharpshooter",sharp?sharp.player+" · "+sharp.avgGuess.toFixed(2)+" avg":"—");
     }
   }
   function addAward(parent,ico,title,val){var d=el("div","award");d.appendChild(el("div","ico",ico));var box=el("div");box.appendChild(el("div","t",title));box.appendChild(el("div","muted",val));d.appendChild(box);parent.appendChild(d);}
