@@ -130,6 +130,7 @@
         </div>
         <div class="row hidden" id="lockedRow">
           <span>Playing as <strong id="meName"></strong></span>
+          <button class="btn ghost" id="renameMe" style="padding:6px 12px;font-size:13px">Rename</button>
           <button class="btn ghost" id="switchMe" style="padding:6px 12px;font-size:13px">Not you? Switch</button>
         </div>
         <div class="row">
@@ -151,7 +152,7 @@
       <div class="muted" style="margin-bottom:8px"><strong>Most points wins.</strong> Points = solve points (6 for a 1-guess solve down to 1 for a 6-guess solve) + a daily speed bonus (+1 to the day's fastest solver) + a weekly streak bonus (a full Mon–Fri week = 1 pt, the next consecutive full week = 2, then 3…) − 1 per missed weekday. Ties broken by fewest average guesses, then fastest time. Points never drop below 0. Updates live.</div>
       <div style="overflow-x:auto">
         <table id="standingsTable">
-          <thead><tr><th>#</th><th style="text-align:left">Player</th><th title="Games played">P</th><th>Solved</th><th title="Average guesses">Avg Guess</th><th title="Consecutive full Mon–Fri weeks">🔥</th><th title="Missed weekdays (−1 each)">Missed</th><th title="Total points">Points</th><th title="Average solve time">Time</th><th title="Daily wins">🏅</th></tr></thead>
+          <thead><tr><th>#</th><th style="text-align:left">Player</th><th title="Games played">P</th><th>Solved</th><th title="Average guesses">Avg Guess</th><th title="Consecutive full Mon–Fri weeks">🔥</th><th title="Missed weekdays (−1 each)">Missed</th><th title="Total points">Points</th><th title="Average solve time">Avg Time</th><th title="Daily wins">🏅</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -418,6 +419,22 @@
     setMe(name);showLocked(name);activatePlayer(name);
   });
   $("switchMe").addEventListener("click",function(){clearMe();showChooser();});
+  $("renameMe").addEventListener("click",async function(){
+    var cur=getMe();if(!cur)return;
+    var nn=prompt("What name would you like on the leaderboard?",cur);
+    if(nn===null)return;nn=nn.trim();
+    if(!nn||nn===cur)return;
+    if(PLAYERS.some(function(n){return n.toLowerCase()===nn.toLowerCase()&&n!==cur;})){toast("That name is already taken");return;}
+    toast("Renaming…");
+    var ins=await sb.from('players').insert({name:nn});
+    if(ins.error){toast("Couldn't rename (name may be taken)");return;}
+    await sb.from('results').update({player:nn}).eq('player',cur);
+    await sb.from('players').delete().eq('name',cur);
+    setMe(nn);
+    await Promise.all([fetchPlayers(),fetchResults()]);
+    refreshPlayerSelect();showLocked(nn);activatePlayer(nn);
+    toast("You're now playing as "+nn);
+  });
 
   document.addEventListener("keydown",function(e){
     if($("tab-play").classList.contains("hidden"))return;
@@ -646,6 +663,19 @@
       });
   }
 
+  /* ===== Auto day rollover (no refresh needed overnight) ===== */
+  var _dayKey=todayKey();
+  function checkDayRollover(){
+    var t=todayKey();
+    if(t===_dayKey)return;
+    _dayKey=t;
+    var me=getMe();
+    if(me){showLocked(me);activatePlayer(me);}else{showChooser();}
+    if(!$("tab-standings").classList.contains("hidden"))renderStandings();
+    if(!$("tab-daily").classList.contains("hidden"))renderDaily();
+    toast("New day — today's puzzle is ready!");
+  }
+
   /* ===== Init ===== */
   async function init(){
     buildBoard();buildKeyboard();
@@ -658,6 +688,9 @@
     var me=getMe();
     if(me){showLocked(me);activatePlayer(me);}else{showChooser();}
     subscribe();
+    _dayKey=todayKey();
+    setInterval(checkDayRollover,30000);
+    document.addEventListener("visibilitychange",function(){if(!document.hidden)checkDayRollover();});
     $("loading").style.display="none";
   }
   init();
