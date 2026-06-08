@@ -122,29 +122,6 @@
 <main>
   <section id="tab-play">
     <div class="card">
-      <div class="pillbar">
-        <div class="row" id="chooserRow">
-          <label for="playerSelect"><strong>Who are you?</strong></label>
-          <select id="playerSelect"><option value="">— choose your name —</option></select>
-          <button class="btn gold" id="confirmMe" style="padding:8px 14px">This is me</button>
-        </div>
-        <div class="row hidden" id="lockedRow">
-          <span>Playing as <strong id="meName"></strong></span>
-          <button class="btn ghost" id="renameMe" style="padding:6px 12px;font-size:13px">Rename</button>
-          <button class="btn ghost" id="switchMe" style="padding:6px 12px;font-size:13px">Not you? Switch</button>
-        </div>
-        <div class="row">
-          <span class="badge" id="dayBadge">Puzzle —</span>
-          <span class="timer" id="timer">00:00</span>
-        </div>
-      </div>
-      <div class="muted" id="playStatus" style="margin-top:8px"></div>
-    </div>
-    <div class="card" id="gameCard">
-      <div id="board"></div>
-      <div id="keyboard"></div>
-    </div>
-    <div class="card">
       <details id="rulesBox">
         <summary style="cursor:pointer;font-weight:700;font-size:16px;list-style:none">📖 How to play &amp; scoring</summary>
         <div style="margin-top:12px;line-height:1.6;color:#3a4a3e;font-size:14px">
@@ -166,6 +143,29 @@
           <p style="margin:0">Ties are broken by the <strong>fewest average guesses</strong>, then the <strong>fastest average time</strong>. The leaderboard updates live as teammates play.</p>
         </div>
       </details>
+    </div>
+    <div class="card">
+      <div class="pillbar">
+        <div class="row" id="chooserRow">
+          <label for="playerSelect"><strong>Who are you?</strong></label>
+          <select id="playerSelect"><option value="">— choose your name —</option></select>
+          <button class="btn gold" id="confirmMe" style="padding:8px 14px">This is me</button>
+        </div>
+        <div class="row hidden" id="lockedRow">
+          <span>Playing as <strong id="meName"></strong></span>
+          <button class="btn ghost" id="renameMe" style="padding:6px 12px;font-size:13px">Rename</button>
+          <button class="btn ghost" id="switchMe" style="padding:6px 12px;font-size:13px">Not you? Switch</button>
+        </div>
+        <div class="row">
+          <span class="badge" id="dayBadge">Puzzle —</span>
+          <span class="timer" id="timer">00:00</span>
+        </div>
+      </div>
+      <div class="muted" id="playStatus" style="margin-top:8px"></div>
+    </div>
+    <div class="card" id="gameCard">
+      <div id="board"></div>
+      <div id="keyboard"></div>
     </div>
   </section>
 
