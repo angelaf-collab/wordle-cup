@@ -598,9 +598,8 @@
     });
     rows.forEach(function(p,i){
       var tr=el("tr");
-      var medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
-      tr.appendChild(el("td","rank-medal",""+medal));
-      var nm=el("td","player",p.name);var sub=el("span","muted"," "+p.played+"/"+p.size+" played");sub.style.fontWeight="400";sub.style.fontSize="12px";nm.appendChild(sub);tr.appendChild(nm);
+      tr.appendChild(el("td",null,""+(i+1)));
+      tr.appendChild(el("td","player",p.name));
       var ptd=el("td",null,p.avgPts==null?"—":p.avgPts.toFixed(1));ptd.style.fontWeight="700";tr.appendChild(ptd);
       tr.appendChild(el("td",null,p.avgG==null?"—":p.avgG.toFixed(2)));
       tr.appendChild(el("td",null,fmtTime(p.avgT)));
