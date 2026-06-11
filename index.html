@@ -176,7 +176,17 @@
       <div class="muted" style="margin-bottom:8px"><strong>Most points wins.</strong> Points = solve points (6 for a 1-guess solve down to 1 for a 6-guess solve) + a daily speed bonus (+1 to the day's fastest solver) + a weekly streak bonus (a full Mon–Fri week = 1 pt, the next consecutive full week = 2, then 3…) − 1 per missed weekday. Ties broken by fewest average guesses, then fastest time. Points never drop below 0. Updates live.</div>
       <div style="overflow-x:auto">
         <table id="standingsTable">
-          <thead><tr><th>#</th><th style="text-align:left">Player</th><th title="Games played">P</th><th>Solved</th><th title="Average guesses">Avg Guess</th><th title="Consecutive full Mon–Fri weeks">🔥</th><th title="Missed weekdays (−1 each)">Missed</th><th title="Total points">Points</th><th title="Average solve time">Avg Time</th><th title="Daily wins">🏅</th></tr></thead>
+          <thead><tr><th>#</th><th style="text-align:left">Player</th><th title="Played today (resets each day)">Today</th><th title="Games played">P</th><th>Solved</th><th title="Average guesses">Avg Guess</th><th title="Consecutive full Mon–Fri weeks">🔥</th><th title="Missed weekdays (−1 each)">Missed</th><th title="Total points">Points</th><th title="Average solve time">Avg Time</th><th title="Daily wins">🏅</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Pod Standings</h2>
+      <div class="muted" style="margin-bottom:8px">Average points across each pod's members who have played. Ties broken by average guesses, then average time.</div>
+      <div style="overflow-x:auto">
+        <table id="podTable">
+          <thead><tr><th>#</th><th style="text-align:left">Pod</th><th title="Average points per member">Avg Points</th><th title="Average guesses">Avg Guess</th><th title="Average solve time">Avg Time</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -486,11 +496,13 @@
   /* ===== Standings ===== */
   function computeStats(){
     var byPlayer={};
-    function ensure(p){if(!byPlayer[p])byPlayer[p]={player:p,played:0,solved:0,sumGuesses:0,sumTime:0,best:99,dailyWins:0,dates:{},firstPlay:null,guessPts:0};return byPlayer[p];}
+    function ensure(p){if(!byPlayer[p])byPlayer[p]={player:p,played:0,solved:0,sumGuesses:0,sumTime:0,best:99,dailyWins:0,dates:{},firstPlay:null,guessPts:0,playedToday:false};return byPlayer[p];}
     PLAYERS.forEach(function(p){ensure(p);});
+    var _today=todayKey();
     RESULTS.forEach(function(r){
       var s=ensure(r.player);
       s.played++;
+      if(r.date===_today)s.playedToday=true;
       if(r.solved){s.solved++;if(r.guesses<s.best)s.best=r.guesses;s.guessPts+=(7-r.guesses);}
       s.sumGuesses+=r.guesses;s.sumTime+=r.timeMs;
       s.dates[r.date]=true;if(!s.firstPlay||r.date<s.firstPlay)s.firstPlay=r.date;
@@ -546,12 +558,13 @@
   function renderStandings(){
     var data=computeStats();var me=$("playerSelect").value;
     var tb=$("standingsTable").querySelector("tbody");tb.innerHTML="";
-    if(!data.length){var tr=el("tr");var td=el("td",null,"No games played yet. Head to the Play tab!");td.colSpan=10;td.style.padding="22px";td.className="muted";tr.appendChild(td);tb.appendChild(tr);}
+    if(!data.length){var tr=el("tr");var td=el("td",null,"No games played yet. Head to the Play tab!");td.colSpan=11;td.style.padding="22px";td.className="muted";tr.appendChild(td);tb.appendChild(tr);}
     data.forEach(function(s,i){
       var tr=el("tr");if(s.player===me)tr.className="me";
       var medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
       tr.appendChild(el("td","rank-medal",""+medal));
       tr.appendChild(el("td","player",s.player));
+      tr.appendChild(el("td",null,s.playedToday?"✅":"—"));
       tr.appendChild(el("td",null,""+s.played));
       tr.appendChild(el("td",null,s.solved+"/"+s.played));
       tr.appendChild(el("td",null,s.avgGuess.toFixed(2)));
@@ -573,8 +586,43 @@
       addAward(aw,"⚡","Fastest Solver",fastest?fastest.player+" · "+fmtTime(fastest.avgTime)+" avg":"—");
       addAward(aw,"🎯","Sharpshooter",sharp?sharp.player+" · "+sharp.avgGuess.toFixed(2)+" avg":"—");
     }
+    renderPods(data);
   }
   function addAward(parent,ico,title,val){var d=el("div","award");d.appendChild(el("div","ico",ico));var box=el("div");box.appendChild(el("div","t",title));box.appendChild(el("div","muted",val));d.appendChild(box);parent.appendChild(d);}
+  var PODS={
+    "Pod B":["Ryan Ferguson","Rocky Iannaci","Julian DiVito","Jason Gould","Emily Di Nino","Dorcas Omunagbe","Taylor St-Louis","Jeff Borges"],
+    "Pod C":["Patricia Lozano Garcia","Alef Baptista","Marcela Salazar","Amanda Miranda","Yousuf Khan"],
+    "Pod D":["Todd Ashford","John Charlton","Vasvi Balasaria","Nandita Bajaj"],
+    "Pod E":["Emily Bonnycastle","Kristina Novakovic"]
+  };
+  function renderPods(data){
+    var tbe=$("podTable");if(!tbe)return;var tb=tbe.querySelector("tbody");tb.innerHTML="";
+    var byName={};data.forEach(function(s){byName[s.player]=s;});
+    var rows=Object.keys(PODS).map(function(name){
+      var members=PODS[name].map(function(n){return byName[n];}).filter(Boolean);
+      var played=members.length;
+      var avgPts=played?members.reduce(function(a,s){return a+s.points;},0)/played:null;
+      var ws=members.filter(function(s){return s.solved>0;});
+      var avgG=ws.length?ws.reduce(function(a,s){return a+s.avgGuess;},0)/ws.length:null;
+      var avgT=ws.length?ws.reduce(function(a,s){return a+s.avgTime;},0)/ws.length:null;
+      return {name:name,size:PODS[name].length,played:played,avgPts:avgPts,avgG:avgG,avgT:avgT};
+    });
+    rows.sort(function(a,b){
+      var ap=a.avgPts==null?-1:a.avgPts,bp=b.avgPts==null?-1:b.avgPts;if(bp!==ap)return bp-ap;
+      var ag=a.avgG==null?1e9:a.avgG,bg=b.avgG==null?1e9:b.avgG;if(ag!==bg)return ag-bg;
+      var at=a.avgT==null?1e9:a.avgT,bt=b.avgT==null?1e9:b.avgT;return at-bt;
+    });
+    rows.forEach(function(p,i){
+      var tr=el("tr");
+      var medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
+      tr.appendChild(el("td","rank-medal",""+medal));
+      var nm=el("td","player",p.name);var sub=el("span","muted"," "+p.played+"/"+p.size+" played");sub.style.fontWeight="400";sub.style.fontSize="12px";nm.appendChild(sub);tr.appendChild(nm);
+      var ptd=el("td",null,p.avgPts==null?"—":p.avgPts.toFixed(1));ptd.style.fontWeight="700";tr.appendChild(ptd);
+      tr.appendChild(el("td",null,p.avgG==null?"—":p.avgG.toFixed(2)));
+      tr.appendChild(el("td",null,fmtTime(p.avgT)));
+      tb.appendChild(tr);
+    });
+  }
 
   /* ===== Calendar (Mon–Fri) ===== */
   var DAYNAMES=["Mon","Tue","Wed","Thu","Fri"];
