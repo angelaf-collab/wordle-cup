@@ -28,6 +28,7 @@
   nav.tabs button.active{color:#fff;border-bottom-color:var(--gold)}
   main{max-width:760px;margin:0 auto;padding:18px 14px 60px}
   .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:var(--shadow);margin-bottom:18px}
+  #rulesBox>summary{display:flex;align-items:center;justify-content:space-between;gap:8px}#rulesBox>summary::-webkit-details-marker{display:none}#rulesBox .rules-arrow{transition:transform .2s ease;color:var(--gold-dark)}#rulesBox[open] .rules-arrow{transform:rotate(180deg)}
   .card h2{margin:0 0 12px;font-size:18px}
   .muted{color:#5c6b61;font-size:13px}
   .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -121,9 +122,9 @@
 
 <main>
   <section id="tab-play">
-    <div class="card">
+    <div class="card" style="background:#fff8e1;border-color:#f0d98c">
       <details id="rulesBox">
-        <summary style="cursor:pointer;font-weight:700;font-size:16px;list-style:none">📖 How to play &amp; scoring</summary>
+        <summary style="cursor:pointer;font-weight:700;font-size:16px;list-style:none">📖 How to play &amp; scoring <span class="rules-arrow">▾</span></summary>
         <div style="margin-top:12px;line-height:1.6;color:#3a4a3e;font-size:14px">
           <p style="margin:0 0 10px"><strong>The game.</strong> One puzzle a day, <strong>Monday–Friday</strong>. Everyone on the team solves the exact same five-letter word, and you get six tries. After each guess the tiles tell you how close you were:</p>
           <ul style="margin:0 0 10px;padding-left:18px">
@@ -133,7 +134,7 @@
           </ul>
           <p style="margin:0 0 10px"><strong>Entering a guess.</strong> Type your five letters and press <strong>Enter</strong> to submit; use <strong>Backspace</strong> to fix a typo. Every guess must be a real five-letter word — made-up letter combinations won't be accepted, so you never waste a turn on a non-word.</p>
           <p style="margin:0 0 10px">Your timer starts on your <strong>first letter</strong> and stops the moment you solve it, so think before you type. You get one shot per day — if you leave mid-game and the day rolls over, that attempt is lost.</p>
-          <p style="margin:0 0 10px"><strong>Your name.</strong> Pick your name once and this device remembers you — from then on you always play as yourself, no dropdown to fumble. Prefer something more casual? Tap <strong>Rename</strong>.</p>
+          <p style="margin:0 0 10px"><strong>Your name.</strong> Pick your name once and this device remembers you — from then on you always play as yourself, no dropdown to fumble each day.</p>
           <p style="margin:0 0 6px"><strong>Scoring — most points wins the Cup.</strong> Each day you can earn:</p>
           <ul style="margin:0 0 10px;padding-left:18px">
             <li style="margin-bottom:4px"><strong>Solve points:</strong> 6 for solving in 1 guess, 5 for 2, down to 1 for 6 (0 if you don't get it).</li>
@@ -154,7 +155,6 @@
         </div>
         <div class="row hidden" id="lockedRow">
           <span>Playing as <strong id="meName"></strong></span>
-          <button class="btn ghost" id="renameMe" style="padding:6px 12px;font-size:13px">Rename</button>
           <button class="btn ghost" id="switchMe" style="padding:6px 12px;font-size:13px">Not you? Switch</button>
         </div>
         <div class="row">
@@ -467,22 +467,6 @@
     setMe(name);showLocked(name);activatePlayer(name);
   });
   $("switchMe").addEventListener("click",function(){clearMe();showChooser();});
-  $("renameMe").addEventListener("click",async function(){
-    var cur=getMe();if(!cur)return;
-    var nn=prompt("What name would you like on the leaderboard?",cur);
-    if(nn===null)return;nn=nn.trim();
-    if(!nn||nn===cur)return;
-    if(PLAYERS.some(function(n){return n.toLowerCase()===nn.toLowerCase()&&n!==cur;})){toast("That name is already taken");return;}
-    toast("Renaming…");
-    var ins=await sb.from('players').insert({name:nn});
-    if(ins.error){toast("Couldn't rename (name may be taken)");return;}
-    await sb.from('results').update({player:nn}).eq('player',cur);
-    await sb.from('players').delete().eq('name',cur);
-    setMe(nn);
-    await Promise.all([fetchPlayers(),fetchResults()]);
-    refreshPlayerSelect();showLocked(nn);activatePlayer(nn);
-    toast("You're now playing as "+nn);
-  });
 
   document.addEventListener("keydown",function(e){
     if($("tab-play").classList.contains("hidden"))return;
