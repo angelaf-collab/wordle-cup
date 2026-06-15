@@ -535,8 +535,8 @@
       }
       s.points=Math.max(0,s.guessPts+s.speedPts+s.streakPts-s.missed);
       return s;
-    }).filter(function(s){return s.played>0;});
-    arr.sort(function(a,b){if(b.points!==a.points)return b.points-a.points;if(a.avgGuess!==b.avgGuess)return a.avgGuess-b.avgGuess;return a.avgTime-b.avgTime;});
+    });
+    arr.sort(function(a,b){if(b.points!==a.points)return b.points-a.points;var ag=a.avgGuess==null?Infinity:a.avgGuess,bg=b.avgGuess==null?Infinity:b.avgGuess;if(ag!==bg)return ag-bg;var at=a.avgTime==null?Infinity:a.avgTime,bt=b.avgTime==null?Infinity:b.avgTime;return at-bt;});
     return arr;
   }
   function renderStandings(){
@@ -551,7 +551,7 @@
       tr.appendChild(el("td",null,s.playedToday?"✅":"—"));
       tr.appendChild(el("td",null,""+s.played));
       tr.appendChild(el("td",null,s.solved+"/"+s.played));
-      tr.appendChild(el("td",null,s.avgGuess.toFixed(2)));
+      tr.appendChild(el("td",null,s.avgGuess==null?"—":s.avgGuess.toFixed(2)));
       tr.appendChild(el("td",null,s.streak?("🔥"+s.streak):"—"));
       tr.appendChild(el("td",null,s.missed?("-"+s.missed):"0"));
       var ptd=el("td",null,""+s.points);ptd.style.fontWeight="700";tr.appendChild(ptd);
