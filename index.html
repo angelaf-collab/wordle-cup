@@ -297,8 +297,10 @@
   function dateToKey(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
   function addDays(d,n){var x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()+n);return x;}
   function mondayOf(d){var x=new Date(d);x.setHours(0,0,0,0);var wd=x.getDay();return addDays(x,(wd===0?-6:1-wd));}
+  var HOLIDAYS={"2026-07-01":1}; // Canada Day — playing stays optional; skipping isn't penalized and won't break streaks
   function isBusinessDay(d){var wd=d.getDay();return wd>=1&&wd<=5;}
-  function businessDaysBetween(start,end){if(end<start)return 0;var c=0,x=new Date(start);x.setHours(0,0,0,0);var e=new Date(end);e.setHours(0,0,0,0);while(x<=e){if(isBusinessDay(x))c++;x=addDays(x,1);}return c;}
+  function isHoliday(d){return !!HOLIDAYS[dateToKey(d)];}
+  function businessDaysBetween(start,end){if(end<start)return 0;var c=0,x=new Date(start);x.setHours(0,0,0,0);var e=new Date(end);e.setHours(0,0,0,0);while(x<=e){if(isBusinessDay(x)&&!isHoliday(x))c++;x=addDays(x,1);}return c;}
   function lastCompletedBusinessDay(){var x=addDays(new Date(),-1);while(!isBusinessDay(x))x=addDays(x,-1);return x;}
   function isPlayDay(){return isBusinessDay(new Date());}
   function nextPlayDay(){var x=addDays(new Date(),1);while(!isBusinessDay(x))x=addDays(x,1);return x;}
@@ -515,7 +517,7 @@
         if(windowEnd>=start){
           var expected=businessDaysBetween(start,windowEnd);
           var playedInWindow=0;
-          Object.keys(s.dates).forEach(function(dk){var dd=keyToDate(dk);if(isBusinessDay(dd)&&dd>=start&&dd<=windowEnd)playedInWindow++;});
+          Object.keys(s.dates).forEach(function(dk){var dd=keyToDate(dk);if(isBusinessDay(dd)&&!isHoliday(dd)&&dd>=start&&dd<=windowEnd)playedInWindow++;});
           s.missed=Math.max(0,expected-playedInWindow);
         }
       }
@@ -527,7 +529,7 @@
           var fri=addDays(wkMon,4);
           if(fri>windowEnd)break;
           var allFive=true;
-          for(var i=0;i<5;i++){if(!s.dates[dateToKey(addDays(wkMon,i))]){allFive=false;break;}}
+          for(var i=0;i<5;i++){var _dk=dateToKey(addDays(wkMon,i));if(HOLIDAYS[_dk])continue;if(!s.dates[_dk]){allFive=false;break;}}
           if(allFive){counter++;s.streakPts+=counter;}else{counter=0;}
           wkMon=addDays(wkMon,7);
         }
