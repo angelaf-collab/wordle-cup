@@ -113,6 +113,9 @@
   .results-trophy{font-size:44px;line-height:1}
   .results-head h2{margin:6px 0 4px;font-size:22px;color:var(--ink)}
   .results-sub{margin:0;color:#5a6b5f;font-size:14px;line-height:1.5}
+  .podwin{background:linear-gradient(90deg,#f4c430,#f7d766);color:#3a2e00;border-radius:12px;padding:10px 14px;text-align:center;font-size:14px;margin:0 0 18px}
+  .podwin strong{font-weight:800}
+  .podwin-sub{display:block;font-size:12px;color:#5a4a00;margin-top:2px;font-weight:600}
   .podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:18px 0 20px}
   .pod{flex:1;max-width:155px;text-align:center;background:#f6f8f4;border:1px solid var(--line);border-bottom:none;border-radius:12px 12px 0 0;padding:10px 6px 0;display:flex;flex-direction:column;align-items:center}
   .pod-medal{font-size:26px}
@@ -173,6 +176,7 @@
       <div class="pod pod1"><div class="pod-medal">🥇</div><div class="pod-name">Ryan Ferguson</div><div class="pod-pts">104 pts</div><div class="pod-block">1</div></div>
       <div class="pod pod3"><div class="pod-medal">🥉</div><div class="pod-name">Emily Di Nino</div><div class="pod-pts">99 pts</div><div class="pod-block">3</div></div>
     </div>
+    <div class="podwin">🏆 Winning Pod: <strong>Pod E</strong><span class="podwin-sub">Emily Bonnycastle · Kristina Novakovic · Zeeshan Mirza</span></div>
     <div class="awards">
       <div class="aw"><span class="aw-ico">🎯</span><div><div class="aw-t">Sharp Shooter</div><div class="aw-v">Kristina Novakovic · 3.73 avg guesses</div></div></div>
       <div class="aw"><span class="aw-ico">⚡</span><div><div class="aw-t">Fastest Solver</div><div class="aw-v">John Charlton · 0:47 avg time</div></div></div>
@@ -266,7 +270,18 @@
         </table>
       </div>
     </div>
-    <div class="card"><h2>Cup Awards</h2><div class="awards-grid" id="awards"></div></div>
+    <div class="card">
+      <h2>Cup Awards</h2>
+      <div class="muted" style="margin-bottom:10px">🏆 Final results — Wordle Cup 2026. Awards among players with 10+ games.</div>
+      <div class="awards-grid" id="awards">
+        <div class="award"><div class="ico">🏆</div><div><div class="t">Cup Champion</div><div class="muted">Ryan Ferguson · 104 pts</div></div></div>
+        <div class="award"><div class="ico">🎯</div><div><div class="t">Sharp Shooter</div><div class="muted">Kristina Novakovic · 3.73 avg guesses</div></div></div>
+        <div class="award"><div class="ico">⚡</div><div><div class="t">Fastest Solver</div><div class="muted">John Charlton · 0:47 avg time</div></div></div>
+        <div class="award"><div class="ico">🔥</div><div><div class="t">Longest Streak</div><div class="muted">Ryan Ferguson · 6 weeks</div></div></div>
+        <div class="award"><div class="ico">🏅</div><div><div class="t">Most Daily Wins</div><div class="muted">Amanda Miranda, Vasvi Balasaria &amp; John Charlton · 4 each</div></div></div>
+        <div class="award"><div class="ico">🎖️</div><div><div class="t">Most Medals</div><div class="muted">Angela Fellini &amp; Emily Bonnycastle · 13 each</div></div></div>
+      </div>
+    </div>
   </section>
 
   <section id="tab-daily" class="hidden">
@@ -636,17 +651,6 @@
       tr.appendChild(el("td",null,s.dailyWins?("🏅"+(s.dailyWins>1?" ×"+s.dailyWins:"")):"—"));
       tb.appendChild(tr);
     });
-    var aw=$("awards");aw.innerHTML="";
-    if(data.length){
-      var leader=data[0];
-      var fastest=data.slice().filter(function(s){return s.solved>0;}).sort(function(a,b){return a.avgTime-b.avgTime;})[0];
-      var hot=data.slice().sort(function(a,b){return b.streak-a.streak;})[0];
-      var sharp=data.slice().filter(function(s){return s.solved>0;}).sort(function(a,b){return a.avgGuess-b.avgGuess;})[0];
-      addAward(aw,"🏆","Cup Leader",leader?leader.player+" · "+leader.points+" pts":"—");
-      addAward(aw,"🔥","Hottest Streak",hot&&hot.streak?hot.player+" · "+hot.streak+" wk"+(hot.streak>1?"s":""):"—");
-      addAward(aw,"⚡","Fastest Solver",fastest?fastest.player+" · "+fmtTime(fastest.avgTime)+" avg":"—");
-      addAward(aw,"🎯","Sharpshooter",sharp?sharp.player+" · "+sharp.avgGuess.toFixed(2)+" avg":"—");
-    }
     renderPods(data);
   }
   function addAward(parent,ico,title,val){var d=el("div","award");d.appendChild(el("div","ico",ico));var box=el("div");box.appendChild(el("div","t",title));box.appendChild(el("div","muted",val));d.appendChild(box);parent.appendChild(d);}
