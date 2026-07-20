@@ -102,6 +102,35 @@
   #loading .trophy{font-size:46px}
   .spinner{width:26px;height:26px;border:3px solid #d6e0d6;border-top-color:var(--pitch);border-radius:50%;animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
+  .results-banner{background:linear-gradient(90deg,#f4c430,#f7d766);color:#3a2e00;font-size:14px;text-align:center;padding:10px 16px;cursor:pointer;border-radius:12px;margin:0 auto 14px;max-width:960px;box-shadow:0 4px 14px rgba(0,0,0,.12)}
+  .results-banner strong{font-weight:800}
+  .results-modal{position:fixed;inset:0;background:rgba(10,20,14,.72);display:none;align-items:flex-start;justify-content:center;z-index:9999;padding:24px 14px;overflow-y:auto}
+  .results-modal.show{display:flex}
+  .results-card{background:#fff;border-radius:20px;max-width:560px;width:100%;padding:26px 24px 24px;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.35);animation:popIn .3s ease}
+  @keyframes popIn{from{transform:translateY(16px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+  .results-close{position:absolute;top:10px;right:14px;border:none;background:transparent;font-size:20px;cursor:pointer;color:#8a948c;line-height:1}
+  .results-head{text-align:center;margin-bottom:14px}
+  .results-trophy{font-size:44px;line-height:1}
+  .results-head h2{margin:6px 0 4px;font-size:22px;color:var(--ink)}
+  .results-sub{margin:0;color:#5a6b5f;font-size:14px;line-height:1.5}
+  .podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:18px 0 20px}
+  .pod{flex:1;max-width:155px;text-align:center;background:#f6f8f4;border:1px solid var(--line);border-bottom:none;border-radius:12px 12px 0 0;padding:10px 6px 0;display:flex;flex-direction:column;align-items:center}
+  .pod-medal{font-size:26px}
+  .pod-name{font-weight:700;font-size:13px;color:var(--ink);margin:4px 0 2px}
+  .pod-pts{font-size:12px;color:#5a6b5f;margin-bottom:6px}
+  .pod-block{width:100%;font-weight:800;color:#fff;display:flex;align-items:flex-start;justify-content:center;padding-top:5px}
+  .pod1{order:2}.pod2{order:1}.pod3{order:3}
+  .pod1 .pod-block{background:var(--gold);color:#3a2e00;height:62px}
+  .pod2 .pod-block{background:#b9c2bb;height:42px}
+  .pod3 .pod-block{background:#cd9a6b;height:28px}
+  .awards{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .aw{display:flex;gap:10px;align-items:flex-start;background:#fff8e1;border:1px solid #f0d98c;border-radius:12px;padding:10px 12px}
+  .aw-ico{font-size:20px;line-height:1.2}
+  .aw-t{font-weight:700;font-size:13px;color:var(--ink)}
+  .aw-v{font-size:12px;color:#5a6b5f;line-height:1.4}
+  .results-foot{font-size:12px;color:#5a6b5f;text-align:center;line-height:1.5;margin:0 0 16px}
+  .results-done{display:block;width:100%;padding:12px;font-size:15px}
+  @media(max-width:520px){.awards{grid-template-columns:1fr}.pod-name{font-size:12px}}
 </style>
 </head>
 <body>
@@ -119,6 +148,32 @@
   <button data-tab="daily">📅 Daily Results</button>
   <button data-tab="admin">⚙️ Roster &amp; Season</button>
 </nav>
+
+<div id="resultsBanner" class="results-banner">🏆 <strong>Wordle Cup 2026 has ended!</strong> Tap to see the champions &amp; award winners →</div>
+
+<div id="resultsModal" class="results-modal">
+  <div class="results-card">
+    <button id="resultsClose" class="results-close" aria-label="Close">✕</button>
+    <div class="results-head">
+      <div class="results-trophy">🏆</div>
+      <h2>Wordle Cup 2026 — Final Results</h2>
+      <p class="results-sub">That's a wrap! The tournament closed Friday at midnight. Huge congrats to everyone who played — here are your champions! 🎉</p>
+    </div>
+    <div class="podium">
+      <div class="pod pod2"><div class="pod-medal">🥈</div><div class="pod-name">Emily Bonnycastle</div><div class="pod-pts">100 pts</div><div class="pod-block">2</div></div>
+      <div class="pod pod1"><div class="pod-medal">🥇</div><div class="pod-name">Ryan Ferguson</div><div class="pod-pts">104 pts</div><div class="pod-block">1</div></div>
+      <div class="pod pod3"><div class="pod-medal">🥉</div><div class="pod-name">Emily Di Nino</div><div class="pod-pts">99 pts</div><div class="pod-block">3</div></div>
+    </div>
+    <div class="awards">
+      <div class="aw"><span class="aw-ico">🎯</span><div><div class="aw-t">Sharp Shooter</div><div class="aw-v">Kristina Novakovic · 3.73 avg guesses</div></div></div>
+      <div class="aw"><span class="aw-ico">⚡</span><div><div class="aw-t">Fastest Solver</div><div class="aw-v">John Charlton · 0:47 avg time</div></div></div>
+      <div class="aw"><span class="aw-ico">🔥</span><div><div class="aw-t">Longest Streak</div><div class="aw-v">Ryan Ferguson · 6 weeks</div></div></div>
+      <div class="aw"><span class="aw-ico">🏅</span><div><div class="aw-t">Most Medals <span style="font-weight:600;color:#8a948c">(tie)</span></div><div class="aw-v">Amanda Miranda, Vasvi Balasaria &amp; John Charlton · 4 each</div></div></div>
+    </div>
+    <p class="results-foot">All awards are among players with <strong>10+ games</strong> to keep it fair. 🎮 Wordle stays open — keep playing anytime just for fun!</p>
+    <button id="resultsCloseBtn" class="btn gold results-done">Close</button>
+  </div>
+</div>
 
 <main>
   <section id="tab-play">
@@ -747,6 +802,17 @@
     toast("New day — today's puzzle is ready!");
   }
 
+  /* ===== Final results announcement ===== */
+  function openResults(){var m=$("resultsModal");if(m)m.classList.add("show");}
+  function closeResults(){var m=$("resultsModal");if(m)m.classList.remove("show");try{localStorage.setItem("wcResults2026Seen","1");}catch(e){}}
+  function maybeShowResults(){var seen=null;try{seen=localStorage.getItem("wcResults2026Seen");}catch(e){}if(!seen)openResults();}
+  (function(){
+    var b=$("resultsBanner");if(b)b.addEventListener("click",openResults);
+    var c1=$("resultsClose");if(c1)c1.addEventListener("click",closeResults);
+    var c2=$("resultsCloseBtn");if(c2)c2.addEventListener("click",closeResults);
+    var m=$("resultsModal");if(m)m.addEventListener("click",function(e){if(e.target===m)closeResults();});
+  })();
+
   /* ===== Init ===== */
   async function init(){
     buildBoard();buildKeyboard();
@@ -764,6 +830,7 @@
     setInterval(checkDayRollover,30000);
     document.addEventListener("visibilitychange",function(){if(!document.hidden)checkDayRollover();});
     $("loading").style.display="none";
+    maybeShowResults();
   }
   init();
 })();
