@@ -219,7 +219,6 @@
             <li style="margin-bottom:4px"><strong>Solve points:</strong> 6 for solving in 1 guess, 5 for 2, down to 1 for 6 (0 if you don't get it).</li>
             <li style="margin-bottom:4px"><strong>Speed bonus:</strong> +1 to the day's fastest solver.</li>
             <li style="margin-bottom:4px"><strong>Streak bonus:</strong> play all five weekdays in a week to earn a streak point — 1 for your first full week, 2 for the next consecutive full week, then 3, and so on. Miss a day and your streak resets the following Monday.</li>
-            <li style="margin-bottom:4px"><strong>Missed days:</strong> −1 point for each weekday you skip (your total never drops below 0). Weekends are off — skipping them never costs you anything.</li>
           </ul>
           <p style="margin:0">Ties are broken by the <strong>fewest average guesses</strong>, then the <strong>fastest average time</strong>. The leaderboard updates live as teammates play.</p>
         </div>
@@ -252,10 +251,10 @@
   <section id="tab-standings" class="hidden">
     <div class="card">
       <h2>League Table</h2>
-      <div class="muted" style="margin-bottom:8px"><strong>Most points wins.</strong> Points = solve points (6 for a 1-guess solve down to 1 for a 6-guess solve) + a daily speed bonus (+1 to the day's fastest solver) + a weekly streak bonus (a full Mon–Fri week = 1 pt, the next consecutive full week = 2, then 3…) − 1 per missed weekday. Ties broken by fewest average guesses, then fastest time. Points never drop below 0. Updates live.</div>
+      <div class="muted" style="margin-bottom:8px"><strong>Most points wins.</strong> Points = solve points (6 for a 1-guess solve down to 1 for a 6-guess solve) + a daily speed bonus (+1 to the day's fastest solver) + a weekly streak bonus (a full Mon–Fri week = 1 pt, the next consecutive full week = 2, then 3…). Ties broken by fewest average guesses, then fastest time. Points never drop below 0. Updates live.</div>
       <div style="overflow-x:auto">
         <table id="standingsTable">
-          <thead><tr><th>#</th><th style="text-align:left">Player</th><th title="Played today (resets each day)">Today</th><th title="Games played">P</th><th>Solved</th><th title="Average guesses">Avg Guess</th><th title="Consecutive full Mon–Fri weeks">🔥</th><th title="Missed weekdays (−1 each)">Missed</th><th title="Total points">Points</th><th title="Average solve time">Avg Time</th><th title="Daily wins">🏅</th></tr></thead>
+          <thead><tr><th>#</th><th style="text-align:left">Player</th><th title="Played today (resets each day)">Today</th><th title="Games played">P</th><th>Solved</th><th title="Average guesses">Avg Guess</th><th title="Consecutive full Mon–Fri weeks">🔥</th><th title="Total points">Points</th><th title="Average solve time">Avg Time</th><th title="Daily wins">🏅</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -625,7 +624,7 @@
         }
         s.streak=counter;
       }
-      s.points=Math.max(0,s.guessPts+s.speedPts+s.streakPts-s.missed);
+      s.points=Math.max(0,s.guessPts+s.speedPts+s.streakPts);
       return s;
     });
     arr.sort(function(a,b){if(b.points!==a.points)return b.points-a.points;var ag=a.avgGuess==null?Infinity:a.avgGuess,bg=b.avgGuess==null?Infinity:b.avgGuess;if(ag!==bg)return ag-bg;var at=a.avgTime==null?Infinity:a.avgTime,bt=b.avgTime==null?Infinity:b.avgTime;return at-bt;});
@@ -634,7 +633,7 @@
   function renderStandings(){
     var data=computeStats();var me=$("playerSelect").value;
     var tb=$("standingsTable").querySelector("tbody");tb.innerHTML="";
-    if(!data.length){var tr=el("tr");var td=el("td",null,"No games played yet. Head to the Play tab!");td.colSpan=11;td.style.padding="22px";td.className="muted";tr.appendChild(td);tb.appendChild(tr);}
+    if(!data.length){var tr=el("tr");var td=el("td",null,"No games played yet. Head to the Play tab!");td.colSpan=10;td.style.padding="22px";td.className="muted";tr.appendChild(td);tb.appendChild(tr);}
     data.forEach(function(s,i){
       var tr=el("tr");if(s.player===me)tr.className="me";
       var medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
@@ -645,7 +644,6 @@
       tr.appendChild(el("td",null,s.solved+"/"+s.played));
       tr.appendChild(el("td",null,s.avgGuess==null?"—":s.avgGuess.toFixed(2)));
       tr.appendChild(el("td",null,s.streak?("🔥"+s.streak):"—"));
-      tr.appendChild(el("td",null,s.missed?("-"+s.missed):"0"));
       var ptd=el("td",null,""+s.points);ptd.style.fontWeight="700";tr.appendChild(ptd);
       tr.appendChild(el("td",null,fmtTime(s.avgTime)));
       tr.appendChild(el("td",null,s.dailyWins?("🏅"+(s.dailyWins>1?" ×"+s.dailyWins:"")):"—"));
